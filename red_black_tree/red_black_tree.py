@@ -1,5 +1,27 @@
+from abc import abstractmethod
 import enum
-from typing import Optional, Any
+from typing import Any, Optional, Protocol, TypeVar
+
+C = TypeVar("C", bound="Comparable")
+
+
+class Comparable(Protocol):
+    @abstractmethod
+    def __eq__(self, other: Any) -> bool:
+        pass
+
+    @abstractmethod
+    def __lt__(self: C, other: C) -> bool:
+        pass
+
+    def __gt__(self: C, other: C) -> bool:
+        return (not self < other) and self != other
+
+    def __le__(self: C, other: C) -> bool:
+        return self < other or self == other
+
+    def __ge__(self: C, other: C) -> bool:
+        return not self < other
 
 
 class Colour(enum.Enum):
@@ -8,7 +30,9 @@ class Colour(enum.Enum):
 
 
 class Node:
-    def __init__(self, key: Any, colour: Colour):
+    """Node class of red black tree"""
+
+    def __init__(self, key: C, colour: Colour):
         self.key = key
         self.colour = colour
         self.parent = None
@@ -108,8 +132,15 @@ class RBTree:
     In this implementation, the keys should not be repeated
     """
 
-    def __init__(self):
+    def __init__(self, *elements: C):
+        """
+        Builds a red-black tree from list elements
+        :param elements: the list of elements that the red-black tree will consist of
+        :return: red-black tree
+        """
         self.root = None
+        for elem in elements:
+            self.insert(elem)
 
     def _node_is_root(self, node: Node) -> bool:
         """
@@ -196,8 +227,11 @@ class RBTree:
         :param inserted_node: the node inserted by the insert() function
         :return: None
         """
-        is_valid_operation = inserted_node is not None and inserted_node.parent is not None and \
-                             inserted_node.grandfather_node() is not None
+        is_valid_operation = (
+            inserted_node is not None
+            and inserted_node.parent is not None
+            and inserted_node.grandfather_node() is not None
+        )
         if not is_valid_operation:
             return
         while inserted_node.parent.is_red():
@@ -233,7 +267,7 @@ class RBTree:
                 break
         self.root.colour = Colour.black
 
-    def insert(self, key: Any) -> None:
+    def insert(self, key: C) -> None:
         """
         Inserts a new node with a specific key into the tree
         The behavior is undefined if a node with such a key already exists in the tree
@@ -266,7 +300,7 @@ class RBTree:
 
         self._balance_after_insert(node_to_insert)
 
-    def _find_key_in_subtree(self, root: Node, key: Any) -> Optional[Node]:
+    def _find_key_in_subtree(self, root: Node, key: C) -> Optional[Node]:
         """
         Recursively searches for a node by key in the subtree with the given root
         :param root: root of the subtree that is currently being searched
@@ -281,7 +315,7 @@ class RBTree:
             return self._find_key_in_subtree(root.right_node, key)
         return self._find_key_in_subtree(root.left_node, key)
 
-    def find_key(self, key) -> Optional[Node]:
+    def find_key(self, key: C) -> Optional[Node]:
         """
         Searches for a node by key in the tree
         :param key: the key that the node is being searched for with
@@ -325,7 +359,9 @@ class RBTree:
         """
         while node != self.root and node.is_black():
             is_left_son = node.has_right_son() and node.right_node.parent == node.parent or node.is_left_son()
-            if (is_left_son and node.parent.right_node is None) and (node.is_right_son() and node.parent.left_node is None):
+            if (is_left_son and node.parent.right_node is None) and (
+                node.is_right_son() and node.parent.left_node is None
+            ):
                 break
             if is_left_son:
                 brother = node.parent.right_node
@@ -384,7 +420,7 @@ class RBTree:
 
         node.colour = Colour.black
 
-    def delete(self, key: Any) -> None:
+    def delete(self, key: C) -> None:
         """
         Removes node with the key from the tree
         If there is no such node, it does nothing
@@ -448,12 +484,3 @@ class RBTree:
 
         if next_key_node.colour == Colour.black:
             self._balance_after_delete(next_key_node)
-
-    def build(self, array: list) -> None:
-        """
-        Builds a red-black tree from list elements
-        :param array: the list of elements that the red-black tree will consist of
-        :return: red-black tree
-        """
-        for element in array:
-            self.insert(element)
